@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { Department, Designation } from '../enums/employee.enums';
 
-@Entity()
+@Entity({ name: 'employees' })
 export class Employee {
   @PrimaryGeneratedColumn()
   id: number;
