@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Employee } from './entities/employee.entity';
@@ -15,9 +19,17 @@ export class EmployeeService {
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeDto> {
+    // Check if email already exists
+    const existing = await this.employeeRepo.findOneBy({ email: dto.email });
+    if (existing) {
+      throw new BadRequestException(
+        `An employee with email ${dto.email} already exists`,
+      );
+    }
+
     const employee = EmployeeMapper.toEntity(dto);
-    await this.employeeRepo.save(employee);
-    return EmployeeMapper.toDto(employee);
+    const createdEmployee = await this.employeeRepo.save(employee);
+    return EmployeeMapper.toDto(createdEmployee);
   }
 
   async findAll(): Promise<EmployeeDto[]> {
