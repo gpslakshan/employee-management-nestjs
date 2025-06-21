@@ -19,7 +19,6 @@ export class EmployeeService {
   ) {}
 
   async create(dto: CreateEmployeeDto): Promise<EmployeeDto> {
-    // Check if email already exists
     const existing = await this.employeeRepo.findOneBy({ email: dto.email });
     if (existing) {
       throw new BadRequestException(
@@ -46,24 +45,25 @@ export class EmployeeService {
   }
 
   async update(id: number, dto: UpdateEmployeeDto): Promise<EmployeeDto> {
-    // Fetch the existing employee by id
-    const employee = await this.employeeRepo.findOne({ where: { id } });
+    const employee = await this.employeeRepo.findOneBy({ id });
     if (!employee) {
       throw new NotFoundException(`Employee with ID ${id} not found`);
     }
 
-    // Convert DTO to entity and update only the changed fields
+    if (dto.email) {
+      const existing = await this.employeeRepo.findOneBy({ email: dto.email });
+      if (existing && existing.id !== id) {
+        throw new BadRequestException(
+          `Another employee with email ${dto.email} already exists`,
+        );
+      }
+    }
+
     const updatedEmployee = EmployeeMapper.toEntity(dto);
+    const merged = this.employeeRepo.merge(employee, updatedEmployee);
 
-    // Merge the existing entity with the updated fields
-    // TypeORM’s merge() method only overwrites fields that are explicitly defined in the second argument. Fields that are undefined are ignored during the merge.
-    this.employeeRepo.merge(employee, updatedEmployee);
-
-    // Save the updated employee back to the database
-    await this.employeeRepo.save(employee);
-
-    // Return the updated employee as DTO
-    return EmployeeMapper.toDto(employee);
+    await this.employeeRepo.save(merged);
+    return EmployeeMapper.toDto(merged);
   }
 
   async remove(id: number): Promise<void> {
